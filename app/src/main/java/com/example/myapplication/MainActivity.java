@@ -2,11 +2,13 @@ package com.example.myapplication;
 
 import static android.content.ContentValues.TAG;
 
+import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.databinding.DataBindingUtil;
 
 import android.content.Context;
 import android.net.ParseException;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -42,6 +44,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -75,13 +78,10 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         mainBinding = DataBindingUtil.setContentView(this, R.layout.activity_main);
         setContentView(mainBinding.getRoot());
-
-//        getAllDeptValue = null;
-
+        generateAllData();
         mainBinding.wirteFileBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-//                writeDepartmentFile();
                 generateAllData();
             }
 
@@ -121,22 +121,18 @@ public class MainActivity extends AppCompatActivity {
         Call<List<DepartmentData>> departmentData = null;
         departmentData = call.getDepartmentData();
         departmentData.enqueue(new Callback<List<DepartmentData>>() {
+            @RequiresApi(api = Build.VERSION_CODES.O)
             @Override
             public void onResponse(Call<List<DepartmentData>> call, Response<List<DepartmentData>> response) {
                 List<DepartmentData> data = response.body();
-                String departmentData[] = new String[data.size()];
 
                 if (response.body() != null) {
 
-//                    for (int i = 0; i < data.size(); i++) {
-//                        departmentData[i] = data.get(i).getNAME();
-//                    }
 
                     Gson gson = new Gson();
                     List<DepartmentData> departmentData1 = new ArrayList<>();
                     departmentData1.addAll(response.body());
                     String convertJsonVal = gson.toJson(departmentData1);
-                    Toast.makeText(MainActivity.this, convertJsonVal, Toast.LENGTH_SHORT).show();
                     writeDepartmentFile(convertJsonVal);
 
 
@@ -155,14 +151,38 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.O)
     private void writeDepartmentFile(String nameOfTheDepartment) {
         try {
-            FileOutputStream outputStream = openFileOutput("mySampleText.txt", MODE_PRIVATE);
-            OutputStreamWriter outputStreamWriter = new OutputStreamWriter(outputStream);
-            outputStreamWriter.write(nameOfTheDepartment);
-            outputStreamWriter.close();
-            Toast.makeText(MainActivity.this, "File Save Successfully", Toast.LENGTH_SHORT).show();
-            System.out.println("Created successfully" + getFilesDir().getAbsolutePath() + "/mySampleText.txt");
+            File file = new File(getApplicationContext().getFilesDir(), "mySampleText.txt");
+
+            if (file.exists()) {
+                boolean result = file.delete();
+
+                if (result) {
+
+                    FileOutputStream outputStream = openFileOutput("mySampleText.txt", MODE_PRIVATE);
+                    OutputStreamWriter outputStreamWriter = new OutputStreamWriter(outputStream);
+                    outputStreamWriter.write(nameOfTheDepartment);
+                    outputStreamWriter.close();
+                    Toast.makeText(MainActivity.this, "File Save Successfully", Toast.LENGTH_SHORT).show();
+                    System.out.println("Created successfully" + getFilesDir().getAbsolutePath() + "/mySampleText.txt");
+
+                }
+
+            } else {
+
+                Toast.makeText(MainActivity.this, "sorry, there is no such file is exists.", Toast.LENGTH_SHORT).show();
+
+                FileOutputStream outputStream = openFileOutput("mySampleText.txt", MODE_PRIVATE);
+                OutputStreamWriter outputStreamWriter = new OutputStreamWriter(outputStream);
+                outputStreamWriter.write(nameOfTheDepartment);
+                outputStreamWriter.close();
+                Toast.makeText(MainActivity.this, "File Save Successfully", Toast.LENGTH_SHORT).show();
+                System.out.println("Created successfully" + getFilesDir().getAbsolutePath() + "/mySampleText.txt");
+            }
+
+
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -179,23 +199,21 @@ public class MainActivity extends AppCompatActivity {
 
             StringBuilder sb = new StringBuilder();
             String line;
+
             while ((line = br.readLine()) != null) {
                 sb.append(line);
             }
 
-
             getAllDeptValue = sb.toString();
 
             departmentSpinner = mainBinding.departmentSp;
-            departmentList = readDepartmentData(MainActivity.this,getAllDeptValue);
+            departmentList = readDepartmentData(MainActivity.this, getAllDeptValue);
             positionValue = "1";
             adapters = new DepartmentAdapter(MainActivity.this, departmentList);
             adapters.getFilter().filter(positionValue);
             departmentSpinner.setAdapter(adapters);
 
-
             textView.setText(sb.toString());
-
 
             br.close();
             isr.close();
@@ -206,7 +224,7 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    public  List<DepartmentData> readDepartmentData(Context context, String FILE_NAME) {
+    public List<DepartmentData> readDepartmentData(Context context, String FILE_NAME) {
         List<DepartmentData> departmentDataList = null;
         try {
             try {
@@ -224,8 +242,7 @@ public class MainActivity extends AppCompatActivity {
             } catch (Exception e) {
                 Toast.makeText(this, e.getMessage(), Toast.LENGTH_SHORT).show();
             }
-        }
-        catch (ParseException e) {
+        } catch (ParseException e) {
             e.printStackTrace();
         }
         return departmentDataList;
