@@ -108,9 +108,6 @@ public class UserAdapters extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         return data.get(position);
     }
 
-
-
-
     public static class DataHolder extends RecyclerView.ViewHolder {
         public ListViewBinding binding;
 
